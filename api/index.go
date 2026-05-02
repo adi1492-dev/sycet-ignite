@@ -1,4 +1,4 @@
-package handler
+package main
 
 import (
 	"database/sql"
@@ -145,19 +145,7 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 	r.ServeHTTP(w, req)
 }
 
-func LocalMain() {
-	// For local development
-	initApp()
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-	}
-	log.Println("Local server starting on :" + port)
-	err := http.ListenAndServe(":"+port, http.HandlerFunc(Handler))
-	if err != nil {
-		log.Fatal("ListenAndServe error: ", err)
-	}
-}
+
 
 func initDB() {
 	queries := []string{
