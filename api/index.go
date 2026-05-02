@@ -1,4 +1,4 @@
-package main
+package handler
 
 import (
 	"database/sql"
@@ -145,7 +145,7 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 	r.ServeHTTP(w, req)
 }
 
-func main() {
+func LocalMain() {
 	// For local development
 	initApp()
 	port := os.Getenv("PORT")
