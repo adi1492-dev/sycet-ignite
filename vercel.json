@@ -1,15 +1,5 @@
 {
   "version": 2,
-  "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "api/index.go"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "client/$1"
-    }
-  ],
   "builds": [
     {
       "src": "api/index.go",
@@ -21,6 +11,16 @@
       "config": {
         "distDir": "dist"
       }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/index.go"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/client/$1"
     }
   ]
 }
