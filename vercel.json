@@ -1,0 +1,26 @@
+{
+  "version": 2,
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "api/index.go"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "client/$1"
+    }
+  ],
+  "builds": [
+    {
+      "src": "api/index.go",
+      "use": "@vercel/go"
+    },
+    {
+      "src": "client/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    }
+  ]
+}
