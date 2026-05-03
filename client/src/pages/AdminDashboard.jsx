@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, BarChart3, Shield, Settings,
   LogOut, Lock, Unlock, Trash2, Edit3, Edit2, CheckCircle,
-  TrendingUp, GitBranch, Clock, AlertTriangle, UserPlus, MessageSquare, Send, X, FileText
+  TrendingUp, GitBranch, Clock, AlertTriangle, UserPlus, MessageSquare, Send, X, FileText, Menu
 } from 'lucide-react';
 import { auth, api } from '../api.js';
 

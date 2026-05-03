@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Users, GitBranch,
   ClipboardList, LogOut, TrendingUp, TrendingDown,
   Clock, Send, Lock, Unlock, ChevronDown, AlertCircle, CheckCircle, Shield, Zap, X,
-  Mail, Phone, HelpCircle
+  Mail, Phone, HelpCircle, Menu
 } from 'lucide-react';
 import { auth, api } from '../api.js';
 
@@ -154,9 +154,9 @@ export default function StudentDashboard() {
   }, [navigate]);
 
   useEffect(() => {
-    api.dashboard().then(setTeam).catch(e => console.error(e));
-    api.listAdmins().then(setAdmins).catch(e => console.error(e));
-    api.listProblemStatements().then(setProblemStatements).catch(e => console.error(e));
+    api.dashboard().then(data => data && setTeam(data)).catch(e => console.error(e));
+    api.listAdmins().then(data => setAdmins(Array.isArray(data) ? data : [])).catch(e => console.error(e));
+    api.listProblemStatements().then(data => setProblemStatements(Array.isArray(data) ? data : [])).catch(e => console.error(e));
     
     // Poll for live updates
     const poll = setInterval(() => {
