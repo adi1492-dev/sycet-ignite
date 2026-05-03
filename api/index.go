@@ -444,16 +444,22 @@ func getKanbanTasks(c *gin.Context) {
 }
 
 func updateKanbanTask(c *gin.Context) {
-	var input struct { ID, Content, Col string }
-	c.ShouldBindJSON(&input)
+	var input struct { ID string `json:"id"`; Content string `json:"content"`; Col string `json:"col"` }
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(400, gin.H{"error": "Invalid input"})
+		return
+	}
 	teamID, _ := c.Get("team_id")
 	db.Exec("INSERT OR REPLACE INTO kanban_tasks (id, team_id, content, col) VALUES (?, ?, ?, ?)", input.ID, teamID, input.Content, input.Col)
 	c.JSON(200, gin.H{"message": "Updated"})
 }
 
 func deleteKanbanTask(c *gin.Context) {
-	var input struct { ID string }
-	c.ShouldBindJSON(&input)
+	var input struct { ID string `json:"id"` }
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(400, gin.H{"error": "Invalid input"})
+		return
+	}
 	teamID, _ := c.Get("team_id")
 	db.Exec("DELETE FROM kanban_tasks WHERE id = ? AND team_id = ?", input.ID, teamID)
 	c.JSON(200, gin.H{"message": "Deleted"})
@@ -542,21 +548,21 @@ func deleteTeam(c *gin.Context) {
 }
 
 func lockTeam(c *gin.Context) {
-	var input struct { TeamID string }
+	var input struct { TeamID string `json:"team_id"` }
 	c.ShouldBindJSON(&input)
 	db.Exec("UPDATE teams SET locked = 1 WHERE id = ?", input.TeamID)
 	c.JSON(200, gin.H{"message": "Locked"})
 }
 
 func unlockTeam(c *gin.Context) {
-	var input struct { TeamID string }
+	var input struct { TeamID string `json:"team_id"` }
 	c.ShouldBindJSON(&input)
 	db.Exec("UPDATE teams SET locked = 0 WHERE id = ?", input.TeamID)
 	c.JSON(200, gin.H{"message": "Unlocked"})
 }
 
 func setTeamProgress(c *gin.Context) {
-	var input struct { TeamID string; Progress int }
+	var input struct { TeamID string `json:"team_id"`; Progress int `json:"progress"` }
 	c.ShouldBindJSON(&input)
 	db.Exec("UPDATE teams SET progress = ? WHERE id = ?", input.Progress, input.TeamID)
 	c.JSON(200, gin.H{"message": "Updated"})
@@ -567,15 +573,15 @@ func listAdmins(c *gin.Context) {
 	rows, _ := db.Query("SELECT id, username, created_at, COALESCE(email, ''), COALESCE(mobile, ''), is_mentor FROM users WHERE role = 'admin'")
 	defer rows.Close()
 	for rows.Next() {
-		var id, un, ca, em, mo string; var isM bool
+		var id, un, ca, em, mo string; var isM sql.NullBool
 		rows.Scan(&id, &un, &ca, &em, &mo, &isM)
-		admins = append(admins, gin.H{"id": id, "username": un, "created_at": ca, "email": em, "mobile": mo, "is_mentor": isM})
+		admins = append(admins, gin.H{"id": id, "username": un, "created_at": ca, "email": em, "mobile": mo, "is_mentor": isM.Bool})
 	}
 	c.JSON(200, admins)
 }
 
 func addAdmin(c *gin.Context) {
-	var input struct { Username, Password, Email, Mobile string; IsMentor bool }
+	var input struct { Username string `json:"username"`; Password string `json:"password"`; Email string `json:"email"`; Mobile string `json:"mobile"`; IsMentor bool `json:"is_mentor"` }
 	c.ShouldBindJSON(&input)
 	hashed, _ := HashPassword(input.Password)
 	db.Exec("INSERT INTO users (id, username, password, role, email, mobile, is_mentor) VALUES (?, ?, ?, ?, ?, ?, ?)", uuid.New().String(), input.Username, hashed, "admin", input.Email, input.Mobile, input.IsMentor)
@@ -583,7 +589,7 @@ func addAdmin(c *gin.Context) {
 }
 
 func updateAdmin(c *gin.Context) {
-	var input struct { ID, Username, Password, Email, Mobile string; IsMentor bool }
+	var input struct { ID string `json:"id"`; Username string `json:"username"`; Password string `json:"password"`; Email string `json:"email"`; Mobile string `json:"mobile"`; IsMentor bool `json:"is_mentor"` }
 	c.ShouldBindJSON(&input)
 	if input.Password != "" {
 		h, _ := HashPassword(input.Password)
@@ -613,7 +619,7 @@ func createTeam(c *gin.Context) {
 }
 
 func assignAdmin(c *gin.Context) {
-	var input struct { TeamID, AdminID string }; c.ShouldBindJSON(&input)
+	var input struct { TeamID string `json:"team_id"`; AdminID string `json:"admin_id"` }; c.ShouldBindJSON(&input)
 	db.Exec("UPDATE teams SET admin_id = ? WHERE id = ?", input.AdminID, input.TeamID)
 	c.JSON(200, gin.H{"message": "Assigned"})
 }
@@ -686,7 +692,11 @@ func deleteResource(c *gin.Context) {
 }
 
 func updateSettings(c *gin.Context) {
-	var input struct { PrizePool string }; c.ShouldBindJSON(&input)
+	var input struct { PrizePool string `json:"prize_pool"` }
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(400, gin.H{"error": "Invalid input"})
+		return
+	}
 	db.Exec("INSERT OR REPLACE INTO event_settings (key, value) VALUES ('prize_pool', ?)", input.PrizePool)
 	c.JSON(200, gin.H{"message": "Updated"})
 }

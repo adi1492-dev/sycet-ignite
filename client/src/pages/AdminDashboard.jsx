@@ -45,6 +45,8 @@ export default function AdminDashboard() {
   const [announcement, setAnnouncement] = useState({ content: '', type: 'info' });
   const [resources, setResources] = useState([]);
   const [newResource, setNewResource] = useState({ title: '', url: '', description: '' });
+  const [prizePoolVal, setPrizePoolVal] = useState('');
+  const [scheduleItems, setScheduleItems] = useState([{ time: '', label: '' }]);
 
   const logout = () => { auth.clear(); navigate('/admin/login'); };
 
@@ -202,7 +204,16 @@ export default function AdminDashboard() {
     loadAdmins();
     api.listProblemStatements().then(data => setProblemStatements(Array.isArray(data) ? data : [])).catch(e => console.error(e));
     loadResources();
+    loadSettings();
   }, []);
+
+  const loadSettings = () => {
+    // We get these from the public landing data endpoint for simplicity
+    publicApi.fetchLandingData().then(data => {
+      if (data.prize_pool) setPrizePoolVal(data.prize_pool);
+      if (data.schedule && data.schedule.length > 0) setScheduleItems(data.schedule);
+    }).catch(e => console.error(e));
+  };
 
   const loadResources = () => {
     api.getResources().then(setResources).catch(e => showToast(e.message, 'error'));
@@ -216,6 +227,12 @@ export default function AdminDashboard() {
         setNewResource({ title: '', url: '', description: '' });
         loadResources();
       })
+      .catch(e => showToast(e.message, 'error'));
+  };
+
+  const handleUpdateSchedule = () => {
+    api.updateSchedule(scheduleItems.filter(s => s.time && s.label))
+      .then(() => showToast('Schedule updated'))
       .catch(e => showToast(e.message, 'error'));
   };
 
@@ -481,7 +498,7 @@ export default function AdminDashboard() {
                     <label className="form-label">Assign Mentor</label>
                     <select className="form-input" value={newTeam.admin_id} onChange={e => setNewTeam({ ...newTeam, admin_id: e.target.value })} required>
                       <option value="">Select Mentor</option>
-                      {(admins || []).map(a => <option key={a.id} value={a.id}>{a.username}</option>)}
+                      {(admins || []).filter(a => a.is_mentor).map(a => <option key={a.id} value={a.id}>{a.username}</option>)}
                     </select>
                   </div>
                 </div>
@@ -625,9 +642,9 @@ export default function AdminDashboard() {
               <div className="form-group">
                 <label className="form-label">Prize Pool Amount</label>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <input className="form-input" value={progressVal} onChange={e => setProgressVal(e.target.value)} placeholder="e.g. ₹5L" />
+                  <input className="form-input" value={prizePoolVal} onChange={e => setPrizePoolVal(e.target.value)} placeholder="e.g. ₹5L" />
                   <button className="btn btn-primary" onClick={() => {
-                    api.updateSettings({ prize_pool: progressVal })
+                    api.updateSettings({ prize_pool: prizePoolVal })
                       .then(() => showToast('Prize pool updated'))
                       .catch(e => showToast(e.message, 'error'));
                   }}>Update</button>
@@ -635,18 +652,32 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Schedule (Simplified for now) */}
+            {/* Schedule */}
             <div className="glass-card" style={{ padding: '1.5rem' }}>
-              <h3 style={{ fontWeight: 700, marginBottom: '1rem' }}>Hackathon Schedule</h3>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
-                Updates here will immediately reflect on the public landing page.
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {/* For brevity, I'm just showing a placeholder. In a real app, this would be a list editor. */}
-                <button className="btn btn-outline" style={{ width: 'fit-content' }} onClick={() => showToast('Schedule editor coming soon!', 'info')}>
-                  Manage Schedule Items
+              <h3 style={{ fontWeight: 700, marginBottom: '1.25rem' }}>Hackathon Schedule</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
+                {scheduleItems.map((s, i) => (
+                  <div key={i} style={{ display: 'flex', gap: '1rem' }}>
+                    <input className="form-input" style={{ width: 150 }} placeholder="Time (e.g. 10:00 AM)" value={s.time} onChange={e => {
+                      const newItems = [...scheduleItems];
+                      newItems[i].time = e.target.value;
+                      setScheduleItems(newItems);
+                    }} />
+                    <input className="form-input" style={{ flex: 1 }} placeholder="Event Label" value={s.label} onChange={e => {
+                      const newItems = [...scheduleItems];
+                      newItems[i].label = e.target.value;
+                      setScheduleItems(newItems);
+                    }} />
+                    <button className="btn btn-outline btn-sm" onClick={() => setScheduleItems(scheduleItems.filter((_, idx) => idx !== i))}>
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+                <button className="btn btn-sm" style={{ width: 'fit-content', background: 'rgba(255,255,255,0.05)' }} onClick={() => setScheduleItems([...scheduleItems, { time: '', label: '' }])}>
+                  + Add Item
                 </button>
               </div>
+              <button className="btn btn-primary" onClick={handleUpdateSchedule}>Save Full Schedule</button>
             </div>
           </div>
         )}
