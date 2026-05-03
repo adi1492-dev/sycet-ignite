@@ -1,5 +1,6 @@
-package handler // Force rebuild 3
+package handler // Force rebuild 4
 
+import (
 	"context"
 	"database/sql"
 	"log"
@@ -161,7 +162,6 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 			api.GET("/announcements", getAnnouncements)
 			api.GET("/leaderboard", getLeaderboard)
 			api.GET("/resources", getResources)
-			api.GET("/problem-statements", listProblemStatements)
 		}
 		admin := r.Group("/api/admin")
 		admin.Use(authMiddleware(), adminMiddleware())
