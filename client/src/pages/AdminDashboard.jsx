@@ -88,11 +88,11 @@ export default function AdminDashboard() {
   };
 
   const loadAdmins = () => {
-    api.listAdmins().then(setAdmins).catch(e => showToast(e.message, 'error'));
+    api.listAdmins().then(data => setAdmins(Array.isArray(data) ? data : [])).catch(e => showToast(e.message, 'error'));
   };
 
   const loadTeams = () => {
-    api.listTeams().then(setTeams).catch(e => showToast(e.message, 'error'));
+    api.listTeams().then(data => setTeams(Array.isArray(data) ? data : [])).catch(e => showToast(e.message, 'error'));
   };
 
   const handleAddAdmin = (e) => {
@@ -200,7 +200,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     loadTeams();
     loadAdmins();
-    api.listProblemStatements().then(setProblemStatements).catch(e => console.error(e));
+    api.listProblemStatements().then(data => setProblemStatements(Array.isArray(data) ? data : [])).catch(e => console.error(e));
     loadResources();
   }, []);
 
@@ -410,7 +410,7 @@ export default function AdminDashboard() {
                           {t.problem_id || 'Not Assigned'}
                         </div>
                         <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {problemStatements.find(ps => ps.id === t.problem_id)?.title || ''}
+                          {Array.isArray(problemStatements) && problemStatements.find(ps => ps.id === t.problem_id)?.title || ''}
                         </div>
                         {t.innovation_name && (
                           <div style={{ fontSize: '0.7rem', color: 'var(--success)', fontWeight: 700, marginTop: 4 }}>
@@ -496,7 +496,7 @@ export default function AdminDashboard() {
                   </select>
                 </div>
 
-                {problemStatements.find(ps => ps.id === newTeam.problem_id)?.bucket === 'Open Innovation' && (
+                {Array.isArray(problemStatements) && problemStatements.find(ps => ps.id === newTeam.problem_id)?.bucket === 'Open Innovation' && (
                   <div className="form-group animate-fade-in" style={{ marginTop: '-1rem' }}>
                     <label className="form-label" style={{ color: 'var(--success)' }}>Innovation Name (Required for Open Innovation)</label>
                     <input 
