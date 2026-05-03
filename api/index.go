@@ -1,4 +1,4 @@
-package handler // Force rebuild 4
+package handler // Force rebuild 5
 
 import (
 	"context"
@@ -140,28 +140,36 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 			MaxAge:           12 * time.Hour,
 		}))
 		r.GET("/api/landing", getLandingData)
-		r.GET("/api/problem-statements", listProblemStatements)
-		auth := r.Group("/api/auth")
-		{
-			auth.POST("/login", handleLogin)
-			auth.POST("/register", handleRegister)
-		}
+		
 		api := r.Group("/api")
-		api.Use(authMiddleware())
 		{
-			api.GET("/team/dashboard", getTeamDashboard)
-			api.POST("/team/checklist", updateChecklist)
-			api.GET("/chat/messages", getChatMessages)
-			api.POST("/chat/send", sendMessage)
-			api.POST("/team/git-repo", submitGitRepo)
-			api.GET("/kanban", getKanbanTasks)
-			api.POST("/kanban/update", updateKanbanTask)
-			api.POST("/kanban/delete", deleteKanbanTask)
-			api.GET("/admins", listAdmins)
-			api.POST("/team/select-admin", selectAdmin)
-			api.GET("/announcements", getAnnouncements)
-			api.GET("/leaderboard", getLeaderboard)
-			api.GET("/resources", getResources)
+			// Public routes under /api
+			api.GET("/problem-statements", listProblemStatements)
+			
+			auth := api.Group("/auth")
+			{
+				auth.POST("/login", handleLogin)
+				auth.POST("/register", handleRegister)
+			}
+			
+			// Protected routes under /api
+			protected := api.Group("/")
+			protected.Use(authMiddleware())
+			{
+				protected.GET("/team/dashboard", getTeamDashboard)
+				protected.POST("/team/checklist", updateChecklist)
+				protected.GET("/chat/messages", getChatMessages)
+				protected.POST("/chat/send", sendMessage)
+				protected.POST("/team/git-repo", submitGitRepo)
+				protected.GET("/kanban", getKanbanTasks)
+				protected.POST("/kanban/update", updateKanbanTask)
+				protected.POST("/kanban/delete", deleteKanbanTask)
+				protected.GET("/admins", listAdmins)
+				protected.POST("/team/select-admin", selectAdmin)
+				protected.GET("/announcements", getAnnouncements)
+				protected.GET("/leaderboard", getLeaderboard)
+				protected.GET("/resources", getResources)
+			}
 		}
 		admin := r.Group("/api/admin")
 		admin.Use(authMiddleware(), adminMiddleware())
