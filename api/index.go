@@ -2,11 +2,9 @@ package handler // Force rebuild 2
 
 import (
 	"database/sql"
-	"encoding/json"
 	"log"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -135,7 +133,7 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 			MaxAge:           12 * time.Hour,
 		}))
 		r.GET("/api/landing", getLandingData)
-		r.GET("/api/problem-statements", getProblemStatements)
+		r.GET("/api/problem-statements", listProblemStatements)
 		auth := r.Group("/api/auth")
 		{
 			auth.POST("/login", handleLogin)
