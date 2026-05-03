@@ -357,7 +357,7 @@ export default function StudentDashboard() {
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <button className="mobile-only btn btn-sm" onClick={() => setIsSidebarOpen(true)} style={{ padding: 8, background: 'rgba(255,255,255,0.05)' }}>
+            <button className="mobile-only btn btn-sm" onClick={() => setIsSidebarOpen(true)} style={{ padding: 10, background: 'var(--primary-dim)', border: '1px solid var(--primary)', color: 'var(--primary)', borderRadius: '10px' }}>
               <Menu size={20} />
             </button>
             <div>
