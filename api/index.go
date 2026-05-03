@@ -330,7 +330,7 @@ func seedProblemStatements(db *sql.DB) {
 }
 
 func handleLogin(c *gin.Context) {
-	var input struct { Username string; Password string }
+	var input struct { Username string `json:"username"`; Password string `json:"password"` }
 	if err := c.ShouldBindJSON(&input); err != nil { 
 		log.Println("Login bind error:", err)
 		c.JSON(400, gin.H{"error": "Invalid input"})
@@ -353,7 +353,7 @@ func handleLogin(c *gin.Context) {
 }
 
 func handleRegister(c *gin.Context) {
-	var input struct { Username string; Password string; TeamName string }
+	var input struct { Username string `json:"username"`; Password string `json:"password"`; TeamName string `json:"team_name"` }
 	if err := c.ShouldBindJSON(&input); err != nil { c.JSON(400, gin.H{"error": "Invalid input"}); return }
 	hashed, _ := HashPassword(input.Password)
 	uid, tid := uuid.New().String(), uuid.New().String()
@@ -387,7 +387,7 @@ func getTeamDashboard(c *gin.Context) {
 }
 
 func updateChecklist(c *gin.Context) {
-	var input struct { CompletedSteps string; Progress int }
+	var input struct { CompletedSteps string `json:"completed_steps"`; Progress int `json:"progress"` }
 	if err := c.ShouldBindJSON(&input); err != nil { c.JSON(400, gin.H{"error": "Invalid input"}); return }
 	teamID, _ := c.Get("team_id")
 	db.Exec("UPDATE teams SET completed_steps = ?, progress = ? WHERE id = ?", input.CompletedSteps, input.Progress, teamID)
@@ -411,7 +411,7 @@ func getChatMessages(c *gin.Context) {
 }
 
 func sendMessage(c *gin.Context) {
-	var input struct { Content string; TeamID string }
+	var input struct { Content string `json:"content"`; TeamID string `json:"team_id"` }
 	c.ShouldBindJSON(&input)
 	teamID, _ := c.Get("team_id")
 	userID, _ := c.Get("user_id")
@@ -423,7 +423,7 @@ func sendMessage(c *gin.Context) {
 }
 
 func submitGitRepo(c *gin.Context) {
-	var input struct { RepoURL string }
+	var input struct { RepoURL string `json:"repo_url"` }
 	c.ShouldBindJSON(&input)
 	teamID, _ := c.Get("team_id")
 	db.Exec("UPDATE teams SET git_repo = ? WHERE id = ?", input.RepoURL, teamID)
@@ -516,7 +516,15 @@ func listTeams(c *gin.Context) {
 }
 
 func updateTeam(c *gin.Context) {
-	var input struct { ID, Name, Password, GitRepo, ProblemID, InnovationName string; Members []struct{ ID, Username string } }
+	var input struct { 
+		ID string `json:"id"`
+		Name string `json:"name"`
+		Password string `json:"password"`
+		GitRepo string `json:"git_repo"`
+		ProblemID string `json:"problem_id"`
+		InnovationName string `json:"innovation_name"`
+		Members []struct{ ID string `json:"id"`; Username string `json:"username"` } `json:"members"`
+	}
 	c.ShouldBindJSON(&input)
 	var currPass string
 	db.QueryRow("SELECT password FROM teams WHERE id = ?", input.ID).Scan(&currPass)
@@ -608,7 +616,14 @@ func deleteAdmin(c *gin.Context) {
 }
 
 func createTeam(c *gin.Context) {
-	var input struct { Name, Password, AdminID, ProblemID, InnovationName string; Members []struct{ Name, Email string } }
+	var input struct { 
+		Name string `json:"name"`
+		Password string `json:"password"`
+		AdminID string `json:"admin_id"`
+		ProblemID string `json:"problem_id"`
+		InnovationName string `json:"innovation_name"`
+		Members []struct{ Name string `json:"name"`; Email string `json:"email"` } `json:"members"`
+	}
 	c.ShouldBindJSON(&input)
 	tid := uuid.New().String(); hashed, _ := HashPassword(input.Password)
 	tx, _ := db.Begin()
@@ -625,7 +640,7 @@ func assignAdmin(c *gin.Context) {
 }
 
 func selectAdmin(c *gin.Context) {
-	var input struct { AdminID string }; c.ShouldBindJSON(&input)
+	var input struct { AdminID string `json:"admin_id"` }; c.ShouldBindJSON(&input)
 	teamID, _ := c.Get("team_id")
 	db.Exec("UPDATE teams SET admin_id = ? WHERE id = ?", input.AdminID, teamID)
 	c.JSON(200, gin.H{"message": "Selected"})
@@ -643,7 +658,7 @@ func getLeaderboard(c *gin.Context) {
 }
 
 func addAnnouncement(c *gin.Context) {
-	var input struct { Content, Type string }; c.ShouldBindJSON(&input)
+	var input struct { Content string `json:"content"`; Type string `json:"type"` }; c.ShouldBindJSON(&input)
 	db.Exec("INSERT INTO announcements (content, type) VALUES (?, ?)", input.Content, input.Type)
 	c.JSON(200, gin.H{"message": "Posted"})
 }
@@ -680,7 +695,7 @@ func getResources(c *gin.Context) {
 }
 
 func addResource(c *gin.Context) {
-	var input struct { Title, URL, Description string }; c.ShouldBindJSON(&input)
+	var input struct { Title string `json:"title"`; URL string `json:"url"`; Description string `json:"description"` }; c.ShouldBindJSON(&input)
 	db.Exec("INSERT INTO resources (title, url, description) VALUES (?, ?, ?)", input.Title, input.URL, input.Description)
 	c.JSON(200, gin.H{"message": "Added"})
 }
@@ -702,7 +717,7 @@ func updateSettings(c *gin.Context) {
 }
 
 func updateSchedule(c *gin.Context) {
-	var input []struct { Time, Label string }; c.ShouldBindJSON(&input)
+	var input []struct { Time string `json:"time"`; Label string `json:"label"` }; c.ShouldBindJSON(&input)
 	tx, _ := db.Begin()
 	tx.Exec("DELETE FROM schedule")
 	for i, s := range input { tx.Exec("INSERT INTO schedule (time, label, order_index) VALUES (?, ?, ?)", s.Time, s.Label, i) }
