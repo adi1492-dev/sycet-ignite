@@ -186,7 +186,7 @@ export default function AdminDashboard() {
     { id: 'overview',  label: 'Overview',     icon: <LayoutDashboard size={16} /> },
     { id: 'teams',     label: 'Teams',        icon: <Users size={16} /> },
     { id: 'progress',  label: 'Progress',     icon: <BarChart3 size={16} /> },
-    { id: 'submissions', label: 'Submissions', icon: <GitBranch size={16} /> },
+    { id: 'submissions', label: 'Git Plus Submissions', icon: <GitBranch size={16} /> },
     { id: 'admins',      label: 'Admins',      icon: <UserPlus size={16} /> },
     { id: 'resources',   label: 'Resources',   icon: <FileText size={16} /> },
     { id: 'settings',    label: 'Settings',    icon: <Settings size={16} /> },
@@ -615,7 +615,7 @@ export default function AdminDashboard() {
         {/* ── SUBMISSIONS ── */}
         {tab === 'submissions' && (
           <div className="glass-card" style={{ padding: '1.5rem' }}>
-            <h3 style={{ fontWeight: 700, marginBottom: '1.25rem' }}>Final Git Submissions</h3>
+            <h3 style={{ fontWeight: 700, marginBottom: '1.25rem' }}>Git Plus Submissions</h3>
             <table className="data-table">
               <thead><tr><th>Team</th><th>Repository</th><th>Status</th></tr></thead>
               <tbody>

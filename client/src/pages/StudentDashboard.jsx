@@ -306,7 +306,7 @@ export default function StudentDashboard() {
     { id: 'leaderboard', label: 'Leaderboard', icon: <Zap size={16} /> },
     { id: 'resources',   label: 'Resources',   icon: <HelpCircle size={16} /> },
     { id: 'mentor',    label: 'Mentor',        icon: <Shield size={16} /> },
-    { id: 'submit',    label: 'Submit',         icon: <GitBranch size={16} /> },
+    { id: 'submit',    label: 'Git Submission (Plus)', icon: <GitBranch size={16} /> },
   ];
 
   return (
@@ -844,6 +844,43 @@ export default function StudentDashboard() {
                     No resources added yet. Check back soon!
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+        {activeTab === 'submit' && (
+          <div className="glass-card animate-fade-up" style={{ padding: '2rem', textAlign: 'center' }}>
+            <div style={{ maxWidth: 500, margin: '0 auto' }}>
+              <div style={{ width: 64, height: 64, borderRadius: 20, background: 'rgba(0,123,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem', color: 'var(--primary)' }}>
+                <GitBranch size={32} />
+              </div>
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '1rem' }}>Final Project Submission</h2>
+              <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>
+                Enter your team's Git repository URL (GitHub/GitLab/Bitbucket). 
+                Once submitted, organizers will use this link for final evaluations.
+              </p>
+              
+              {team.git_repo ? (
+                <div style={{ background: 'rgba(0,255,136,0.05)', border: '1px solid var(--success)', borderRadius: 12, padding: '1.5rem', marginBottom: '2rem' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--success)', fontWeight: 700, textTransform: 'uppercase', marginBottom: 8 }}>Submitted Repository</div>
+                  <a href={team.git_repo.startsWith('http') ? team.git_repo : `https://${team.git_repo}`} target="_blank" rel="noreferrer" style={{ color: 'var(--text-primary)', fontWeight: 700, textDecoration: 'none', wordBreak: 'break-all' }}>
+                    {team.git_repo}
+                  </a>
+                  <button className="btn btn-sm btn-outline" style={{ marginTop: '1rem', width: '100%' }} onClick={() => setGitRepo(team.git_repo)}>
+                    Change Submission
+                  </button>
+                </div>
+              ) : null}
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <input 
+                  className="form-input" 
+                  placeholder="https://github.com/username/repo" 
+                  value={gitRepo}
+                  onChange={e => setGitRepo(e.target.value)}
+                />
+                <button className="btn btn-primary btn-lg" style={{ width: '100%' }} onClick={submitGit}>
+                  {team.git_repo ? 'Update Submission' : 'Submit Repository'}
+                </button>
               </div>
             </div>
           </div>
