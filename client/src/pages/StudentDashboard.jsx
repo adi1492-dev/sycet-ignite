@@ -847,6 +847,7 @@ export default function StudentDashboard() {
               </div>
             </div>
           </div>
+        )}
         {activeTab === 'submit' && (
           <div className="glass-card animate-fade-up" style={{ padding: '2rem', textAlign: 'center' }}>
             <div style={{ maxWidth: 500, margin: '0 auto' }}>
