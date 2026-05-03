@@ -164,9 +164,9 @@ export default function StudentDashboard() {
       api.getLeaderboard().then(setLeaderboard);
     }, 10000);
     
-    api.getAnnouncements().then(setAnnouncements);
-    api.getLeaderboard().then(setLeaderboard);
-    api.getResources().then(setResources);
+    api.getAnnouncements().then(data => setAnnouncements(Array.isArray(data) ? data : [])).catch(e => console.error(e));
+    api.getLeaderboard().then(data => setLeaderboard(Array.isArray(data) ? data : [])).catch(e => console.error(e));
+    api.getResources().then(data => setResources(Array.isArray(data) ? data : [])).catch(e => console.error(e));
     
     return () => clearInterval(poll);
   }, []);
@@ -384,8 +384,8 @@ export default function StudentDashboard() {
             gap: 12
           }}>
             <div className="badge badge-primary" style={{ padding: '4px 8px', fontSize: '0.65rem' }}>LATEST</div>
-            <div style={{ fontSize: '0.875rem', fontWeight: 600, flex: 1 }}>{announcements[0].content}</div>
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{new Date(announcements[0].created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+            <div style={{ fontSize: '0.875rem', fontWeight: 600, flex: 1 }}>{announcements[0]?.content}</div>
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{announcements[0]?.created_at ? new Date(announcements[0].created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}</div>
           </div>
         )}
 

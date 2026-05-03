@@ -371,9 +371,9 @@ func getTeamDashboard(c *gin.Context) {
 	err := db.QueryRow("SELECT name, progress, locked, git_repo, admin_id, problem_id, innovation_name, completed_steps FROM teams WHERE id = ?", teamID).
 		Scan(&t.Name, &t.Progress, &t.Locked, &t.GitRepo, &t.AdminID, &t.ProblemID, &t.InnovationName, &t.CompletedSteps)
 	if err != nil { c.JSON(404, gin.H{"error": "Team not found"}); return }
+	members := []gin.H{}
 	rows, _ := db.Query("SELECT id, username, role FROM users WHERE team_id = ?", teamID)
 	defer rows.Close()
-	var members []gin.H
 	for rows.Next() {
 		var mid, mname, mrole string
 		rows.Scan(&mid, &mname, &mrole)
@@ -399,9 +399,9 @@ func getChatMessages(c *gin.Context) {
 	role, _ := c.Get("role")
 	if role == "admin" { if tid := c.Query("team_id"); tid != "" { teamID = tid } }
 	db.Exec("DELETE FROM messages WHERE created_at < datetime('now', '-1 day')")
+	msgs := []gin.H{}
 	rows, _ := db.Query("SELECT username, COALESCE(role, 'student'), content, created_at FROM messages WHERE team_id = ? ORDER BY created_at ASC LIMIT 100", teamID)
 	defer rows.Close()
-	var msgs []gin.H
 	for rows.Next() {
 		var u, r, cnt, t string
 		rows.Scan(&u, &r, &cnt, &t)
@@ -432,9 +432,9 @@ func submitGitRepo(c *gin.Context) {
 
 func getKanbanTasks(c *gin.Context) {
 	teamID, _ := c.Get("team_id")
+	tasks := []gin.H{}
 	rows, _ := db.Query("SELECT id, content, col FROM kanban_tasks WHERE team_id = ?", teamID)
 	defer rows.Close()
-	var tasks []gin.H
 	for rows.Next() {
 		var id, cnt, col string
 		rows.Scan(&id, &cnt, &col)
@@ -496,8 +496,9 @@ func listTeams(c *gin.Context) {
 		var id, name, git, adm, prob, inn sql.NullString
 		var l bool; var p int
 		rows.Scan(&id, &name, &l, &p, &git, &adm, &prob, &inn)
+		members := []gin.H{}
 		mRows, _ := db.Query("SELECT id, username FROM users WHERE team_id = ?", id.String)
-		var members []gin.H
+		defer mRows.Close()
 		for mRows.Next() {
 			var mid, mun string; mRows.Scan(&mid, &mun)
 			members = append(members, gin.H{"id": mid, "username": mun})
@@ -562,9 +563,9 @@ func setTeamProgress(c *gin.Context) {
 }
 
 func listAdmins(c *gin.Context) {
+	admins := []gin.H{}
 	rows, _ := db.Query("SELECT id, username, created_at, COALESCE(email, ''), COALESCE(mobile, ''), is_mentor FROM users WHERE role = 'admin'")
 	defer rows.Close()
-	var admins []gin.H
 	for rows.Next() {
 		var id, un, ca, em, mo string; var isM bool
 		rows.Scan(&id, &un, &ca, &em, &mo, &isM)
@@ -625,9 +626,9 @@ func selectAdmin(c *gin.Context) {
 }
 
 func getLeaderboard(c *gin.Context) {
+	lb := []gin.H{}
 	rows, _ := db.Query("SELECT name, progress, problem_id, innovation_name FROM teams ORDER BY progress DESC, name ASC")
 	defer rows.Close()
-	var lb []gin.H
 	for rows.Next() {
 		var n, p, i sql.NullString; var pr int; rows.Scan(&n, &pr, &p, &i)
 		lb = append(lb, gin.H{"name": n.String, "progress": pr, "problem_id": p.String, "innovation_name": i.String})
@@ -642,9 +643,9 @@ func addAnnouncement(c *gin.Context) {
 }
 
 func getAnnouncements(c *gin.Context) {
+	items := []gin.H{}
 	rows, _ := db.Query("SELECT content, type, created_at FROM announcements ORDER BY created_at DESC LIMIT 5")
 	defer rows.Close()
-	var items []gin.H
 	for rows.Next() {
 		var cnt, tp, ca string; rows.Scan(&cnt, &tp, &ca); items = append(items, gin.H{"content": cnt, "type": tp, "created_at": ca})
 	}
@@ -652,9 +653,9 @@ func getAnnouncements(c *gin.Context) {
 }
 
 func listProblemStatements(c *gin.Context) {
+	list := []gin.H{}
 	rows, _ := db.Query("SELECT id, title, technology, bucket, description FROM problem_statements")
 	defer rows.Close()
-	var list []gin.H
 	for rows.Next() {
 		var id, t, te, b, d string; rows.Scan(&id, &t, &te, &b, &d)
 		list = append(list, gin.H{"id": id, "title": t, "technology": te, "bucket": b, "description": d})
@@ -663,9 +664,9 @@ func listProblemStatements(c *gin.Context) {
 }
 
 func getResources(c *gin.Context) {
+	items := []gin.H{}
 	rows, _ := db.Query("SELECT id, title, url, description FROM resources ORDER BY created_at DESC")
 	defer rows.Close()
-	var items []gin.H
 	for rows.Next() {
 		var id int; var t, u, d string; rows.Scan(&id, &t, &u, &d); items = append(items, gin.H{"id": id, "title": t, "url": u, "description": d})
 	}
