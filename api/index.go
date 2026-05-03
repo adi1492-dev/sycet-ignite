@@ -1,6 +1,6 @@
 package handler // Force rebuild 3
 
-import (
+	"context"
 	"database/sql"
 	"log"
 	"net/http"
@@ -114,8 +114,12 @@ func initApp() {
 		db.SetMaxOpenConns(25)
 		db.SetMaxIdleConns(5)
 		db.SetConnMaxLifetime(5 * time.Minute)
-		if err := db.Ping(); err != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := db.PingContext(ctx); err != nil {
 			log.Println("Database connection warning:", err)
+		} else {
+			log.Println("Database connected successfully")
 		}
 		initDB()
 		seedProblemStatements(db)
@@ -263,9 +267,30 @@ func AnalyzeSentiment(text string) int {
 }
 
 func seedProblemStatements(db *sql.DB) {
+	// Check if already seeded to avoid unnecessary work
+	var count int
+	db.QueryRow("SELECT COUNT(*) FROM problem_statements").Scan(&count)
+	if count >= len(ProblemStatements) {
+		return
+	}
+
+	log.Println("Seeding problem statements...")
+	tx, err := db.Begin()
+	if err != nil {
+		log.Println("Failed to start seed transaction:", err)
+		return
+	}
+	stmt, _ := tx.Prepare("INSERT OR REPLACE INTO problem_statements (id, title, technology, bucket, description) VALUES (?, ?, ?, ?, ?)")
+	defer stmt.Close()
+
 	for _, ps := range ProblemStatements {
-		db.Exec("INSERT OR REPLACE INTO problem_statements (id, title, technology, bucket, description) VALUES (?, ?, ?, ?, ?)",
-			ps.ID, ps.Title, ps.Technology, ps.Bucket, ps.Description)
+		stmt.Exec(ps.ID, ps.Title, ps.Technology, ps.Bucket, ps.Description)
+	}
+	
+	if err := tx.Commit(); err != nil {
+		log.Println("Failed to commit seed transaction:", err)
+	} else {
+		log.Println("Seeding completed successfully.")
 	}
 }
 
