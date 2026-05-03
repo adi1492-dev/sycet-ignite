@@ -107,6 +107,9 @@ func initApp() {
 		if !strings.Contains(dbURL, "authToken=") {
 			dbURL = dbURL + "?authToken=" + dbToken
 		}
+		if secret := os.Getenv("JWT_SECRET"); secret != "" {
+			jwtKey = []byte(secret)
+		}
 		var err error
 		db, err = sql.Open("libsql", dbURL)
 		if err != nil {
@@ -157,18 +160,24 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 			protected.Use(authMiddleware())
 			{
 				protected.GET("/team/dashboard", getTeamDashboard)
-				protected.POST("/team/checklist", updateChecklist)
 				protected.GET("/chat/messages", getChatMessages)
 				protected.POST("/chat/send", sendMessage)
-				protected.POST("/team/git-repo", submitGitRepo)
 				protected.GET("/kanban", getKanbanTasks)
-				protected.POST("/kanban/update", updateKanbanTask)
-				protected.POST("/kanban/delete", deleteKanbanTask)
 				protected.GET("/admins", listAdmins)
-				protected.POST("/team/select-admin", selectAdmin)
 				protected.GET("/announcements", getAnnouncements)
 				protected.GET("/leaderboard", getLeaderboard)
 				protected.GET("/resources", getResources)
+
+				// Routes that cannot be accessed if team is locked
+				modifying := protected.Group("/")
+				modifying.Use(teamLockedMiddleware())
+				{
+					modifying.POST("/team/checklist", updateChecklist)
+					modifying.POST("/team/git-repo", submitGitRepo)
+					modifying.POST("/kanban/update", updateKanbanTask)
+					modifying.POST("/kanban/delete", deleteKanbanTask)
+					modifying.POST("/team/select-admin", selectAdmin)
+				}
 			}
 		}
 		admin := r.Group("/api/admin")
@@ -253,6 +262,24 @@ func adminMiddleware() gin.HandlerFunc {
 		role, _ := c.Get("role")
 		if role != "admin" {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Admin access required"})
+			c.Abort()
+			return
+		}
+		c.Next()
+	}
+}
+
+func teamLockedMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		teamID, exists := c.Get("team_id")
+		if !exists || teamID == "" {
+			c.Next()
+			return
+		}
+		var locked bool
+		err := db.QueryRow("SELECT locked FROM teams WHERE id = ?", teamID).Scan(&locked)
+		if err == nil && locked {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Team is locked. Modifications are not allowed."})
 			c.Abort()
 			return
 		}
@@ -433,7 +460,13 @@ func deleteKanbanTask(c *gin.Context) {
 }
 
 func getLandingData(c *gin.Context) {
-	var d struct { Participants, Teams int; PrizePool string; Schedule []gin.H }
+	var d struct {
+		Participants int       `json:"participants"`
+		Teams        int       `json:"teams"`
+		PrizePool    string    `json:"prize_pool"`
+		Schedule     []gin.H   `json:"schedule"`
+	}
+	d.Schedule = []gin.H{}
 	db.QueryRow("SELECT COUNT(*) FROM users WHERE role = 'student'").Scan(&d.Participants)
 	db.QueryRow("SELECT COUNT(*) FROM teams").Scan(&d.Teams)
 	db.QueryRow("SELECT value FROM event_settings WHERE key = 'prize_pool'").Scan(&d.PrizePool)
