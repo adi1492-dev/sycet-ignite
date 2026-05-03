@@ -103,7 +103,9 @@ func initApp() {
 		if dbURL == "" || dbToken == "" {
 			log.Fatal("TURSO_URL and TURSO_TOKEN are required")
 		}
-		dbURL = dbURL + "?authToken=" + dbToken
+		if !strings.Contains(dbURL, "authToken=") {
+			dbURL = dbURL + "?authToken=" + dbToken
+		}
 		var err error
 		db, err = sql.Open("libsql", dbURL)
 		if err != nil {
@@ -185,7 +187,7 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 // Helpers & Handlers (Consolidated)
 
 func HashPassword(password string) (string, error) {
-	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 12)
 	return string(bytes), err
 }
 
@@ -269,10 +271,20 @@ func seedProblemStatements(db *sql.DB) {
 
 func handleLogin(c *gin.Context) {
 	var input struct { Username string; Password string }
-	if err := c.ShouldBindJSON(&input); err != nil { c.JSON(400, gin.H{"error": "Invalid input"}); return }
+	if err := c.ShouldBindJSON(&input); err != nil { 
+		log.Println("Login bind error:", err)
+		c.JSON(400, gin.H{"error": "Invalid input"})
+		return 
+	}
 	var u struct { ID string; Password string; Role string; TeamID sql.NullString }
 	err := db.QueryRow("SELECT id, password, role, team_id FROM users WHERE username = ?", input.Username).Scan(&u.ID, &u.Password, &u.Role, &u.TeamID)
-	if err != nil || !CheckPasswordHash(input.Password, u.Password) {
+	if err != nil {
+		log.Println("Login query error for", input.Username, ":", err)
+		c.JSON(401, gin.H{"error": "Invalid credentials"})
+		return
+	}
+	if !CheckPasswordHash(input.Password, u.Password) {
+		log.Println("Login password mismatch for", input.Username)
 		c.JSON(401, gin.H{"error": "Invalid credentials"})
 		return
 	}
