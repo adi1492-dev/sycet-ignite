@@ -405,7 +405,7 @@ export default function AdminDashboard() {
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>Team</th><th>Members</th><th>Problem Statement</th><th>Assigned Mentor</th><th>Status</th><th>Lock Status</th><th>Actions</th>
+                    <th>Team</th><th>Members</th><th>Problem Statement</th><th>Repository</th><th>Assigned Mentor</th><th>Status</th><th>Lock Status</th><th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -434,6 +434,14 @@ export default function AdminDashboard() {
                             Project: {t.innovation_name}
                           </div>
                         )}
+                      </td>
+                      <td>
+                        {t.git_repo
+                          ? <a href={t.git_repo.startsWith('http') ? t.git_repo : `https://${t.git_repo}`} target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', textDecoration: 'none' }}>
+                              <GitBranch size={14} style={{ verticalAlign: 'middle', marginRight: 4 }} /> Repo
+                            </a>
+                          : <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>None</span>
+                        }
                       </td>
                       <td>
                         <select
