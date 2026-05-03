@@ -65,7 +65,7 @@ export default function AdminLoginPage() {
   return (
     <div style={{
       minHeight: '100vh', display: 'flex', alignItems: 'center',
-      justifyContent: 'center', padding: '2rem', position: 'relative'
+      justifyContent: 'center', padding: '1rem', position: 'relative'
     }}>
       <div className="grid-bg" />
       <div style={{ position: 'fixed', top: '10%', right: '10%', width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,0,85,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
@@ -74,15 +74,15 @@ export default function AdminLoginPage() {
       <div style={{ width: '100%', maxWidth: 460, position: 'relative', zIndex: 1 }}>
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
           <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-            <ShieldCheck size={36} color="var(--accent)" />
-            <span style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+            <ShieldCheck size={28} color="var(--accent)" />
+            <span style={{ fontSize: 'clamp(1.1rem, 4vw, 1.3rem)', fontWeight: 800, color: 'var(--text-primary)' }}>
               SYCET IGNITE <span style={{ color: 'var(--accent)' }}>Admin</span>
             </span>
           </Link>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginTop: 8 }}>Shreeyash College — Administrator Portal</p>
         </div>
 
-        <div className="glass-card" style={{ padding: '2.5rem', border: '1px solid rgba(255,0,85,0.15)' }}>
+        <div className="glass-card" style={{ padding: 'clamp(1rem, 4vw, 2.5rem)', border: '1px solid rgba(255,0,85,0.15)' }}>
           {/* Security badge */}
           <div style={{
             display: 'flex', alignItems: 'center', gap: 10,

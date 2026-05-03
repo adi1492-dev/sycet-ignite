@@ -1,4 +1,4 @@
-import { Terminal, Cpu, Shield, Users, Zap, Code2, Globe, Trophy, ChevronRight } from 'lucide-react';
+import { Terminal, Cpu, Shield, Users, Zap, Code2, Globe, Trophy, ChevronRight, Menu, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -61,6 +61,7 @@ function CounterNumber({ target }) {
 
 export default function LandingPage() {
   const navigate = useNavigate();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [data, setData] = useState({
     participants: 0,
     prize_pool: '...',
@@ -89,24 +90,45 @@ export default function LandingPage() {
       {/* NAV */}
       <nav style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 200,
-        background: 'rgba(6,6,10,0.85)', backdropFilter: 'blur(16px)',
+        background: 'rgba(6,6,10,0.95)', backdropFilter: 'blur(16px)',
         borderBottom: '1px solid var(--glass-border)',
-        padding: '0 2rem', display: 'flex', alignItems: 'center',
+        padding: '0 1.5rem', display: 'flex', alignItems: 'center',
         justifyContent: 'space-between', height: '64px'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Terminal size={28} color="var(--primary)" />
-          <span style={{ fontSize: '1.2rem', fontWeight: 800, letterSpacing: '-0.5px' }}>
+          <Terminal size={24} color="var(--primary)" />
+          <span style={{ fontSize: '1.1rem', fontWeight: 800, letterSpacing: '-0.5px' }}>
             SYCET<span className="glow-text" style={{ color: 'var(--primary)' }}> IGNITE</span>
           </span>
-          <span className="badge badge-primary" style={{ marginLeft: 8 }}>Hackathon 2026</span>
         </div>
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+
+        {/* Desktop Nav */}
+        <div className="desktop-only" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <a href="#about" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontSize: '0.875rem', fontWeight: 500 }}>About</a>
           <a href="#timeline" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontSize: '0.875rem', fontWeight: 500 }}>Timeline</a>
           <button className="btn btn-outline btn-sm" onClick={() => navigate('/login')}>Student Login</button>
           <button className="btn btn-primary btn-sm" onClick={() => navigate('/admin/login')}>Admin</button>
         </div>
+
+        {/* Mobile Toggle */}
+        <button className="mobile-only" onClick={() => setIsMenuOpen(!isMenuOpen)} style={{ background: 'none', border: 'none', color: 'var(--text-primary)' }}>
+          {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+        </button>
+
+        {/* Mobile Menu Overlay */}
+        {isMenuOpen && (
+          <div style={{
+            position: 'fixed', top: 64, left: 0, right: 0, bottom: 0,
+            background: 'var(--bg-dark)', zIndex: 190,
+            padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem'
+          }}>
+            <a href="#about" onClick={() => setIsMenuOpen(false)} style={{ color: 'var(--text-primary)', textDecoration: 'none', fontSize: '1.25rem', fontWeight: 600 }}>About</a>
+            <a href="#timeline" onClick={() => setIsMenuOpen(false)} style={{ color: 'var(--text-primary)', textDecoration: 'none', fontSize: '1.25rem', fontWeight: 600 }}>Timeline</a>
+            <div style={{ height: '1px', background: 'var(--glass-border)' }} />
+            <button className="btn btn-outline btn-lg" onClick={() => { setIsMenuOpen(false); navigate('/login'); }}>Student Login</button>
+            <button className="btn btn-primary btn-lg" onClick={() => { setIsMenuOpen(false); navigate('/admin/login'); }}>Admin Portal</button>
+          </div>
+        )}
       </nav>
 
       {/* HERO */}
@@ -148,8 +170,8 @@ export default function LandingPage() {
       </section>
 
       {/* STATS */}
-      <section style={{ padding: '4rem 2rem', borderTop: '1px solid var(--glass-border)', borderBottom: '1px solid var(--glass-border)' }}>
-        <div className="container" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '2rem' }}>
+      <section style={{ padding: '4rem 1.5rem', borderTop: '1px solid var(--glass-border)', borderBottom: '1px solid var(--glass-border)' }}>
+        <div className="container grid-responsive grid-3">
           {statsDisplay.map((s, i) => (
             <div key={i} style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 900, fontFamily: 'var(--font-mono)' }} className="gradient-text">

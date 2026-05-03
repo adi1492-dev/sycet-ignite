@@ -130,6 +130,7 @@ function KanbanBoard() {
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 export default function StudentDashboard() {
   const navigate = useNavigate();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const user = auth.getUser() || { username: 'student', team_name: 'Team Alpha' };
 
   const [activeTab, setActiveTab] = useState('overview');
@@ -313,15 +314,18 @@ export default function StudentDashboard() {
       <div className="grid-bg" />
 
       {/* SIDEBAR */}
-      <aside className="sidebar">
-        <div className="sidebar-logo">
+      <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
+        <div className="sidebar-logo" style={{ position: 'relative' }}>
           <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg, var(--secondary), var(--primary))', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <LayoutDashboard size={18} />
           </div>
-          <div>
+          <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 800, fontSize: '0.9rem' }}>SYCET IGNITE</div>
             <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Student Dashboard</div>
           </div>
+          <button className="mobile-only" onClick={() => setIsSidebarOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)' }}>
+            <X size={18} />
+          </button>
         </div>
 
         <div style={{ padding: '0 0.5rem', marginBottom: '0.5rem' }}>
@@ -334,7 +338,7 @@ export default function StudentDashboard() {
 
         <div className="sidebar-section-label">Navigation</div>
         {NAV.map(n => (
-          <button key={n.id} className={`sidebar-nav-item ${activeTab === n.id ? 'active' : ''}`} onClick={() => setActiveTab(n.id)}>
+          <button key={n.id} className={`sidebar-nav-item ${activeTab === n.id ? 'active' : ''}`} onClick={() => { setActiveTab(n.id); setIsSidebarOpen(false); }}>
             {n.icon} {n.label}
           </button>
         ))}
@@ -352,9 +356,14 @@ export default function StudentDashboard() {
       <main className="main-content">
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem' }}>
-          <div>
-            <h1 style={{ fontSize: '1.5rem', fontWeight: 800 }}>{NAV.find(n => n.id === activeTab)?.label}</h1>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>SYCET IGNITE Hackathon 2026 · {team.name}</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button className="mobile-only btn btn-sm" onClick={() => setIsSidebarOpen(true)} style={{ padding: 8, background: 'rgba(255,255,255,0.05)' }}>
+              <Menu size={20} />
+            </button>
+            <div>
+              <h1 style={{ fontSize: 'clamp(1.1rem, 4vw, 1.5rem)', fontWeight: 800 }}>{NAV.find(n => n.id === activeTab)?.label}</h1>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>SYCET IGNITE · {team.name}</p>
+            </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
@@ -407,9 +416,9 @@ export default function StudentDashboard() {
               </div>
             )}
             
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {/* Stats row */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+            <div className="grid-responsive grid-3">
               {[
                 { label: 'Team Progress', value: `${team.progress || 0}%`, color: 'var(--primary)' },
                 { label: 'Members', value: (team.members || []).length, color: 'var(--success)' },

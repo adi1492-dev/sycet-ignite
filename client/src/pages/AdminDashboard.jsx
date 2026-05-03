@@ -20,8 +20,8 @@ const INIT_TEAMS = [
 
 // ─── Main Admin Panel ─────────────────────────────────────────────────────────
 export default function AdminDashboard() {
-  console.log("AdminDashboard rendering...");
   const navigate = useNavigate();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [tab, setTab] = useState('overview');
   const [teams, setTeams] = useState([]);
   const [editingProgress, setEditingProgress] = useState(null);
@@ -259,15 +259,18 @@ export default function AdminDashboard() {
       )}
 
       {/* SIDEBAR */}
-      <aside className="sidebar">
-        <div className="sidebar-logo">
+      <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
+        <div className="sidebar-logo" style={{ position: 'relative' }}>
           <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg, #660020, var(--accent))', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Shield size={18} />
           </div>
-          <div>
+          <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 800, fontSize: '0.9rem' }}>Admin Panel</div>
             <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Full Control</div>
           </div>
+          <button className="mobile-only" onClick={() => setIsSidebarOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)' }}>
+            <X size={18} />
+          </button>
         </div>
 
         <div style={{ padding: '0 0.5rem', marginBottom: '0.5rem' }}>
@@ -279,7 +282,7 @@ export default function AdminDashboard() {
 
         <div className="sidebar-section-label">Control Panel</div>
         {NAV.map(n => (
-          <button key={n.id} className={`sidebar-nav-item ${tab === n.id ? 'active' : ''}`} onClick={() => setTab(n.id)}>
+          <button key={n.id} className={`sidebar-nav-item ${tab === n.id ? 'active' : ''}`} onClick={() => { setTab(n.id); setIsSidebarOpen(false); }}>
             {n.icon} {n.label}
           </button>
         ))}
@@ -293,19 +296,24 @@ export default function AdminDashboard() {
       {/* MAIN */}
       <main className="main-content">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem' }}>
-          <div>
-            <h1 style={{ fontSize: '1.5rem', fontWeight: 800 }}>{NAV.find(n => n.id === tab)?.label || 'Dashboard'}</h1>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>SYCET IGNITE Hackathon 2026 · Administrator</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button className="mobile-only btn btn-sm" onClick={() => setIsSidebarOpen(true)} style={{ padding: 8, background: 'rgba(255,255,255,0.05)' }}>
+              <Menu size={20} />
+            </button>
+            <div>
+              <h1 style={{ fontSize: 'clamp(1.1rem, 4vw, 1.5rem)', fontWeight: 800 }}>{NAV.find(n => n.id === tab)?.label || 'Dashboard'}</h1>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>SYCET IGNITE · Admin</p>
+            </div>
           </div>
-          <div className="badge badge-danger" style={{ padding: '6px 14px' }}>
-            <Shield size={12} /> Admin Mode Active
+          <div className="badge badge-danger desktop-only" style={{ padding: '6px 14px' }}>
+            <Shield size={12} /> Admin Mode
           </div>
         </div>
 
         {/* ── OVERVIEW ── */}
         {tab === 'overview' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
+            <div className="grid-responsive grid-4">
               {[
                 { label: 'Total Teams',    value: (teams || []).length,     color: 'var(--primary)'   },
                 { label: 'Avg Progress',   value: `${avgProgress}%`, color: 'var(--secondary)' },

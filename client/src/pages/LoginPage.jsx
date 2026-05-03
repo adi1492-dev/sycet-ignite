@@ -30,7 +30,7 @@ export default function LoginPage() {
   return (
     <div style={{
       minHeight: '100vh', display: 'flex', alignItems: 'center',
-      justifyContent: 'center', padding: '2rem', position: 'relative'
+      justifyContent: 'center', padding: '1rem', position: 'relative'
     }}>
       <div className="grid-bg" />
 
@@ -42,15 +42,15 @@ export default function LoginPage() {
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
           <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-            <Terminal size={32} color="var(--primary)" />
-            <span style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-              SYCET<span style={{ color: 'var(--primary)' }}> IGNITE Hackathon 2026</span>
+            <Terminal size={28} color="var(--primary)" />
+            <span style={{ fontSize: 'clamp(1.1rem, 4vw, 1.3rem)', fontWeight: 800, color: 'var(--text-primary)' }}>
+              SYCET<span style={{ color: 'var(--primary)' }}> IGNITE Hackathon</span>
             </span>
           </Link>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginTop: 8 }}>Shreeyash College — Student Portal</p>
         </div>
 
-        <div className="glass-card" style={{ padding: '2.5rem' }}>
+        <div className="glass-card" style={{ padding: 'clamp(1.5rem, 5vw, 2.5rem)' }}>
           <h1 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '0.5rem' }}>Welcome back</h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: '2rem' }}>
             Enter your credentials to access the dashboard.
