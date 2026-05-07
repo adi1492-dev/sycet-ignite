@@ -488,31 +488,79 @@ func getLandingData(c *gin.Context) {
 
 func getAdminStats(c *gin.Context) {
 	var s struct { TotalTeams, AvgProgress, SubmittedCount int }
-	db.QueryRow("SELECT COUNT(*) FROM teams").Scan(&s.TotalTeams)
-	db.QueryRow("SELECT AVG(progress) FROM teams").Scan(&s.AvgProgress)
-	db.QueryRow("SELECT COUNT(*) FROM teams WHERE git_repo IS NOT NULL").Scan(&s.SubmittedCount)
+	query := `
+		SELECT 
+			COUNT(*), 
+			COALESCE(AVG(progress), 0), 
+			SUM(CASE WHEN git_repo IS NOT NULL AND git_repo != '' THEN 1 ELSE 0 END) 
+		FROM teams
+	`
+	db.QueryRow(query).Scan(&s.TotalTeams, &s.AvgProgress, &s.SubmittedCount)
 	c.JSON(200, s)
 }
 
 func listTeams(c *gin.Context) {
-	rows, _ := db.Query("SELECT id, name, locked, progress, git_repo, admin_id, problem_id, innovation_name, innovation_tags, innovation_description FROM teams")
-	defer rows.Close()
-	var teams []gin.H
-	for rows.Next() {
-		var id, name, git, adm, prob, inn, tags, desc sql.NullString
-		var l bool; var p int
-		rows.Scan(&id, &name, &l, &p, &git, &adm, &prob, &inn, &tags, &desc)
-		members := []gin.H{}
-		mRows, _ := db.Query("SELECT id, username FROM users WHERE team_id = ?", id.String)
-		defer mRows.Close()
-		for mRows.Next() {
-			var mid, mun string; mRows.Scan(&mid, &mun)
-			members = append(members, gin.H{"id": mid, "username": mun})
-		}
-		mRows.Close()
-		teams = append(teams, gin.H{"id": id.String, "name": name.String, "locked": l, "progress": p, "git_repo": git.String, "admin_id": adm.String, "problem_id": prob.String, "innovation_name": inn.String, "innovation_tags": tags.String, "innovation_description": desc.String, "members": members})
+	query := `
+		SELECT 
+			t.id, t.name, t.locked, t.progress, t.git_repo, t.admin_id, t.problem_id, 
+			t.innovation_name, t.innovation_tags, t.innovation_description,
+			u.id as member_id, u.username as member_name
+		FROM teams t
+		LEFT JOIN users u ON t.id = u.team_id AND u.role = 'student'
+		ORDER BY t.name ASC
+	`
+	rows, err := db.Query(query)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
 	}
-	c.JSON(200, teams)
+	defer rows.Close()
+
+	type TeamData struct {
+		ID, Name, Git, AdminID, ProblemID, InoName, InoTags, InoDesc string
+		Locked                                                       bool
+		Progress                                                     int
+		Members                                                      []gin.H
+	}
+
+	teamsMap := make(map[string]*TeamData)
+	teamOrder := []string{}
+
+	for rows.Next() {
+		var id, name, git, aid, pid, in, it, idesc, mid, mun sql.NullString
+		var lock sql.NullBool
+		var prog sql.NullInt64
+		
+		rows.Scan(&id, &name, &lock, &prog, &git, &aid, &pid, &in, &it, &idesc, &mid, &mun)
+
+		if _, exists := teamsMap[id.String]; !exists {
+			teamsMap[id.String] = &TeamData{
+				ID: id.String, Name: name.String, Locked: lock.Bool, Progress: int(prog.Int64),
+				Git: git.String, AdminID: aid.String, ProblemID: pid.String,
+				InoName: in.String, InoTags: it.String, InoDesc: idesc.String,
+				Members: []gin.H{},
+			}
+			teamOrder = append(teamOrder, id.String)
+		}
+
+		if mid.Valid {
+			teamsMap[id.String].Members = append(teamsMap[id.String].Members, gin.H{
+				"id": mid.String, "username": mun.String,
+			})
+		}
+	}
+
+	result := []gin.H{}
+	for _, tid := range teamOrder {
+		t := teamsMap[tid]
+		result = append(result, gin.H{
+			"id": t.ID, "name": t.Name, "locked": t.Locked, "progress": t.Progress,
+			"git_repo": t.Git, "admin_id": t.AdminID, "problem_id": t.ProblemID,
+			"innovation_name": t.InoName, "innovation_tags": t.InoTags, 
+			"innovation_description": t.InoDesc, "members": t.Members,
+		})
+	}
+	c.JSON(200, result)
 }
 
 func updateTeam(c *gin.Context) {
