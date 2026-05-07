@@ -34,6 +34,8 @@ export default function AdminDashboard() {
     admin_id: '', 
     problem_id: '',
     innovation_name: '',
+    innovation_tags: '',
+    innovation_description: '',
     members: [{ name: '', email: '' }] 
   });
   const [toast, setToast] = useState(null);
@@ -119,6 +121,8 @@ export default function AdminDashboard() {
           admin_id: '', 
           problem_id: '',
           innovation_name: '',
+          innovation_tags: '',
+          innovation_description: '',
           members: [{ name: '', email: '' }] 
         });
         loadTeams();
@@ -521,16 +525,37 @@ export default function AdminDashboard() {
                   </select>
                 </div>
 
-                {Array.isArray(problemStatements) && problemStatements.find(ps => ps.id === newTeam.problem_id)?.bucket === 'Open Innovation' && (
-                  <div className="form-group animate-fade-in" style={{ marginTop: '-1rem' }}>
-                    <label className="form-label" style={{ color: 'var(--success)' }}>Innovation Name (Required for Open Innovation)</label>
-                    <input 
-                      className="form-input" 
-                      placeholder="e.g. Smart Traffic Management System" 
-                      value={newTeam.innovation_name} 
-                      onChange={e => setNewTeam({ ...newTeam, innovation_name: e.target.value })} 
-                      required 
-                    />
+                {(newTeam.problem_id === 'sycet000C' || problemStatements.find(ps => ps.id === newTeam.problem_id)?.bucket === 'Open') && (
+                  <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '-1rem' }}>
+                    <div className="form-group">
+                      <label className="form-label" style={{ color: 'var(--success)' }}>Innovation Title (Required)</label>
+                      <input 
+                        className="form-input" 
+                        placeholder="e.g. Smart Traffic Management System" 
+                        value={newTeam.innovation_name} 
+                        onChange={e => setNewTeam({ ...newTeam, innovation_name: e.target.value })} 
+                        required 
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Innovation Tags (Optional)</label>
+                      <input 
+                        className="form-input" 
+                        placeholder="e.g. AI, IoT, Smart City" 
+                        value={newTeam.innovation_tags} 
+                        onChange={e => setNewTeam({ ...newTeam, innovation_tags: e.target.value })} 
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Innovation Description (Optional)</label>
+                      <textarea 
+                        className="form-input" 
+                        placeholder="Describe the problem and solution..." 
+                        style={{ minHeight: 80, resize: 'vertical' }}
+                        value={newTeam.innovation_description} 
+                        onChange={e => setNewTeam({ ...newTeam, innovation_description: e.target.value })} 
+                      />
+                    </div>
                   </div>
                 )}
 
@@ -912,16 +937,37 @@ export default function AdminDashboard() {
                 </select>
               </div>
 
-              {problemStatements.find(ps => ps.id === editingTeam?.problem_id)?.bucket === 'Open Innovation' && (
-                <div className="form-group animate-fade-in">
-                  <label className="form-label" style={{ color: 'var(--success)' }}>Innovation Name</label>
-                  <input 
-                    className="form-input" 
-                    placeholder="e.g. Smart Traffic Management System" 
-                    value={editingTeam?.innovation_name || ''} 
-                    onChange={e => setEditingTeam({ ...editingTeam, innovation_name: e.target.value })} 
-                    required 
-                  />
+              {(editingTeam?.problem_id === 'sycet000C' || problemStatements.find(ps => ps.id === editingTeam?.problem_id)?.bucket === 'Open') && (
+                <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <div className="form-group">
+                    <label className="form-label" style={{ color: 'var(--success)' }}>Innovation Title</label>
+                    <input 
+                      className="form-input" 
+                      placeholder="e.g. Smart Traffic Management System" 
+                      value={editingTeam?.innovation_name || ''} 
+                      onChange={e => setEditingTeam({ ...editingTeam, innovation_name: e.target.value })} 
+                      required 
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Innovation Tags</label>
+                    <input 
+                      className="form-input" 
+                      placeholder="e.g. AI, IoT" 
+                      value={editingTeam?.innovation_tags || ''} 
+                      onChange={e => setEditingTeam({ ...editingTeam, innovation_tags: e.target.value })} 
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Innovation Description</label>
+                    <textarea 
+                      className="form-input" 
+                      placeholder="Describe the problem..." 
+                      style={{ minHeight: 80, resize: 'vertical' }}
+                      value={editingTeam?.innovation_description || ''} 
+                      onChange={e => setEditingTeam({ ...editingTeam, innovation_description: e.target.value })} 
+                    />
+                  </div>
                 </div>
               )}
 

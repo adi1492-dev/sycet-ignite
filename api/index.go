@@ -1,4 +1,4 @@
-package handler // Force rebuild 5
+package main // Force rebuild 5
 
 import (
 	"context"
@@ -495,13 +495,13 @@ func getAdminStats(c *gin.Context) {
 }
 
 func listTeams(c *gin.Context) {
-	rows, _ := db.Query("SELECT id, name, locked, progress, git_repo, admin_id, problem_id, innovation_name FROM teams")
+	rows, _ := db.Query("SELECT id, name, locked, progress, git_repo, admin_id, problem_id, innovation_name, innovation_tags, innovation_description FROM teams")
 	defer rows.Close()
 	var teams []gin.H
 	for rows.Next() {
-		var id, name, git, adm, prob, inn sql.NullString
+		var id, name, git, adm, prob, inn, tags, desc sql.NullString
 		var l bool; var p int
-		rows.Scan(&id, &name, &l, &p, &git, &adm, &prob, &inn)
+		rows.Scan(&id, &name, &l, &p, &git, &adm, &prob, &inn, &tags, &desc)
 		members := []gin.H{}
 		mRows, _ := db.Query("SELECT id, username FROM users WHERE team_id = ?", id.String)
 		defer mRows.Close()
@@ -510,7 +510,7 @@ func listTeams(c *gin.Context) {
 			members = append(members, gin.H{"id": mid, "username": mun})
 		}
 		mRows.Close()
-		teams = append(teams, gin.H{"id": id.String, "name": name.String, "locked": l, "progress": p, "git_repo": git.String, "admin_id": adm.String, "problem_id": prob.String, "innovation_name": inn.String, "members": members})
+		teams = append(teams, gin.H{"id": id.String, "name": name.String, "locked": l, "progress": p, "git_repo": git.String, "admin_id": adm.String, "problem_id": prob.String, "innovation_name": inn.String, "innovation_tags": tags.String, "innovation_description": desc.String, "members": members})
 	}
 	c.JSON(200, teams)
 }
@@ -523,6 +523,8 @@ func updateTeam(c *gin.Context) {
 		GitRepo string `json:"git_repo"`
 		ProblemID string `json:"problem_id"`
 		InnovationName string `json:"innovation_name"`
+		InnovationTags string `json:"innovation_tags"`
+		InnovationDescription string `json:"innovation_description"`
 		Members []struct{ ID string `json:"id"`; Username string `json:"username"` } `json:"members"`
 	}
 	c.ShouldBindJSON(&input)
@@ -531,7 +533,7 @@ func updateTeam(c *gin.Context) {
 	finalPass := currPass
 	if input.Password != "" { finalPass, _ = HashPassword(input.Password) }
 	tx, _ := db.Begin()
-	tx.Exec("UPDATE teams SET name = ?, password = ?, git_repo = ?, problem_id = ?, innovation_name = ? WHERE id = ?", input.Name, finalPass, input.GitRepo, input.ProblemID, input.InnovationName, input.ID)
+	tx.Exec("UPDATE teams SET name = ?, password = ?, git_repo = ?, problem_id = ?, innovation_name = ?, innovation_tags = ?, innovation_description = ? WHERE id = ?", input.Name, finalPass, input.GitRepo, input.ProblemID, input.InnovationName, input.InnovationTags, input.InnovationDescription, input.ID)
 	for _, m := range input.Members {
 		if m.ID == "" {
 			tx.Exec("INSERT INTO users (id, username, password, role, team_id) VALUES (?, ?, ?, ?, ?)", uuid.New().String(), m.Username, finalPass, "student", input.ID)
@@ -622,12 +624,14 @@ func createTeam(c *gin.Context) {
 		AdminID string `json:"admin_id"`
 		ProblemID string `json:"problem_id"`
 		InnovationName string `json:"innovation_name"`
+		InnovationTags string `json:"innovation_tags"`
+		InnovationDescription string `json:"innovation_description"`
 		Members []struct{ Name string `json:"name"`; Email string `json:"email"` } `json:"members"`
 	}
 	c.ShouldBindJSON(&input)
 	tid := uuid.New().String(); hashed, _ := HashPassword(input.Password)
 	tx, _ := db.Begin()
-	tx.Exec("INSERT INTO teams (id, name, password, admin_id, problem_id, innovation_name) VALUES (?, ?, ?, ?, ?, ?)", tid, input.Name, hashed, input.AdminID, input.ProblemID, input.InnovationName)
+	tx.Exec("INSERT INTO teams (id, name, password, admin_id, problem_id, innovation_name, innovation_tags, innovation_description) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", tid, input.Name, hashed, input.AdminID, input.ProblemID, input.InnovationName, input.InnovationTags, input.InnovationDescription)
 	for _, m := range input.Members { tx.Exec("INSERT INTO users (id, username, password, role, team_id) VALUES (?, ?, ?, ?, ?)", uuid.New().String(), m.Email, hashed, "student", tid) }
 	tx.Commit()
 	c.JSON(201, gin.H{"message": "Created"})
@@ -728,7 +732,7 @@ func updateSchedule(c *gin.Context) {
 func initDB() {
 	queries := []string{
 		`CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, username TEXT UNIQUE, password TEXT, role TEXT, team_id TEXT, email TEXT, mobile TEXT, is_mentor BOOLEAN DEFAULT 1, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`,
-		`CREATE TABLE IF NOT EXISTS teams (id TEXT PRIMARY KEY, name TEXT UNIQUE, password TEXT, admin_id TEXT, problem_id TEXT, innovation_name TEXT, completed_steps TEXT, locked BOOLEAN DEFAULT 0, progress INTEGER DEFAULT 0, git_repo TEXT)`,
+		`CREATE TABLE IF NOT EXISTS teams (id TEXT PRIMARY KEY, name TEXT UNIQUE, password TEXT, admin_id TEXT, problem_id TEXT, innovation_name TEXT, innovation_tags TEXT, innovation_description TEXT, completed_steps TEXT, locked BOOLEAN DEFAULT 0, progress INTEGER DEFAULT 0, git_repo TEXT)`,
 		`CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY AUTOINCREMENT, team_id TEXT, user_id TEXT, username TEXT, role TEXT, content TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`,
 		`CREATE TABLE IF NOT EXISTS kanban_tasks (id TEXT PRIMARY KEY, team_id TEXT, content TEXT, col TEXT)`,
 		`CREATE TABLE IF NOT EXISTS problem_statements (id TEXT PRIMARY KEY, title TEXT, technology TEXT, bucket TEXT, description TEXT)`,
@@ -736,7 +740,27 @@ func initDB() {
 		`CREATE TABLE IF NOT EXISTS resources (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, url TEXT, description TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`,
 		`CREATE TABLE IF NOT EXISTS event_settings (key TEXT PRIMARY KEY, value TEXT)`,
 		`CREATE TABLE IF NOT EXISTS schedule (time TEXT, label TEXT, order_index INTEGER)`,
+		`CREATE INDEX IF NOT EXISTS idx_users_team_id ON users(team_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_messages_team_id ON messages(team_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_kanban_team_id ON kanban_tasks(team_id)`,
 	}
 	for _, q := range queries { db.Exec(q) }
 	db.Exec("INSERT OR IGNORE INTO event_settings (key, value) VALUES ('prize_pool', '₹2L')")
+}
+
+func main() {
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	log.Printf("Server starting on port %s...", port)
+	
+	// Create a custom handler that ensures app is initialized
+	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		Handler(w, r)
+	})
+	
+	if err := http.ListenAndServe(":" + port, h); err != nil {
+		log.Fatal(err)
+	}
 }
