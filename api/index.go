@@ -1,4 +1,4 @@
-package main // Force rebuild 5
+package handler // Force rebuild 5
 
 import (
 	"context"
@@ -794,21 +794,4 @@ func initDB() {
 	}
 	for _, q := range queries { db.Exec(q) }
 	db.Exec("INSERT OR IGNORE INTO event_settings (key, value) VALUES ('prize_pool', '₹2L')")
-}
-
-func main() {
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-	}
-	log.Printf("Server starting on port %s...", port)
-	
-	// Create a custom handler that ensures app is initialized
-	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		Handler(w, r)
-	})
-	
-	if err := http.ListenAndServe(":" + port, h); err != nil {
-		log.Fatal(err)
-	}
 }
