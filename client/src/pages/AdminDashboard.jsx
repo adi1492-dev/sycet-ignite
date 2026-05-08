@@ -937,7 +937,7 @@ export default function AdminDashboard() {
                 </select>
               </div>
 
-              {(editingTeam?.problem_id === 'sycet000C' || problemStatements.find(ps => ps.id === editingTeam?.problem_id)?.bucket === 'Open') && (
+              {(editingTeam?.problem_id === 'sycet000C' || problemStatements.find(ps => ps.id === editingTeam?.problem_id)?.bucket === 'Open' || editingTeam?.innovation_description) && (
                 <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                   <div className="form-group">
                     <label className="form-label" style={{ color: 'var(--success)' }}>Innovation Title</label>

@@ -367,9 +367,9 @@ func handleRegister(c *gin.Context) {
 
 func getTeamDashboard(c *gin.Context) {
 	teamID, _ := c.Get("team_id")
-	var t struct { Name string; Progress int; Locked bool; GitRepo, AdminID, ProblemID, InnovationName, CompletedSteps sql.NullString }
-	err := db.QueryRow("SELECT name, progress, locked, git_repo, admin_id, problem_id, innovation_name, completed_steps FROM teams WHERE id = ?", teamID).
-		Scan(&t.Name, &t.Progress, &t.Locked, &t.GitRepo, &t.AdminID, &t.ProblemID, &t.InnovationName, &t.CompletedSteps)
+	var t struct { Name string; Progress int; Locked bool; GitRepo, AdminID, ProblemID, InnovationName, InnovationDescription, CompletedSteps sql.NullString }
+	err := db.QueryRow("SELECT name, progress, locked, git_repo, admin_id, problem_id, innovation_name, innovation_description, completed_steps FROM teams WHERE id = ?", teamID).
+		Scan(&t.Name, &t.Progress, &t.Locked, &t.GitRepo, &t.AdminID, &t.ProblemID, &t.InnovationName, &t.InnovationDescription, &t.CompletedSteps)
 	if err != nil { c.JSON(404, gin.H{"error": "Team not found"}); return }
 	members := []gin.H{}
 	rows, _ := db.Query("SELECT id, username, role FROM users WHERE team_id = ?", teamID)
@@ -381,7 +381,8 @@ func getTeamDashboard(c *gin.Context) {
 	}
 	c.JSON(200, gin.H{
 		"name": t.Name, "progress": t.Progress, "locked": t.Locked, "git_repo": t.GitRepo.String,
-		"admin_id": t.AdminID.String, "problem_id": t.ProblemID.String, "innovation_name": t.InnovationName.String,
+		"admin_id": t.AdminID.String, "problem_id": t.ProblemID.String, 
+		"innovation_name": t.InnovationName.String, "innovation_description": t.InnovationDescription.String,
 		"completed_steps": t.CompletedSteps.String, "members": members,
 	})
 }

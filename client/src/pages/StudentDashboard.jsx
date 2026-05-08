@@ -134,7 +134,7 @@ export default function StudentDashboard() {
   const user = auth.getUser() || { username: 'student', team_name: 'Team Alpha' };
 
   const [activeTab, setActiveTab] = useState('overview');
-  const [team, setTeam] = useState({ name: 'Loading...', progress: 0, locked: false, members: [], problem_id: '', innovation_name: '' });
+  const [team, setTeam] = useState({ name: 'Loading...', progress: 0, locked: false, members: [], problem_id: '', innovation_name: '', innovation_description: '' });
   const [problemStatements, setProblemStatements] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
   const [leaderboard, setLeaderboard] = useState([]);
@@ -409,7 +409,15 @@ export default function StudentDashboard() {
                   <div className="badge badge-secondary" style={{ fontSize: '0.7rem' }}>{currentProblem.technology}</div>
                   <div className="badge badge-outline" style={{ fontSize: '0.7rem' }}>{currentProblem.bucket} Bucket</div>
                 </div>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.6 }}>{currentProblem.description}</p>
+                <div style={{ marginBottom: '1rem' }}>
+                  {team.innovation_description && (
+                    <div style={{ marginBottom: '1rem', padding: '1rem', background: 'rgba(0,255,136,0.03)', borderRadius: 8, borderLeft: '3px solid var(--success)' }}>
+                      <div style={{ fontSize: '0.65rem', color: 'var(--success)', fontWeight: 800, textTransform: 'uppercase', marginBottom: 4 }}>Innovation Description</div>
+                      <p style={{ color: 'var(--text-primary)', fontSize: '0.875rem', lineHeight: 1.5 }}>{team.innovation_description}</p>
+                    </div>
+                  )}
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.6 }}>{currentProblem.description}</p>
+                </div>
                 <button className="btn btn-sm" style={{ marginTop: '1rem', background: 'rgba(112,0,255,0.1)', color: 'var(--primary)' }} onClick={() => setActiveTab('guide')}>
                    View Implementation Guide →
                 </button>
@@ -584,6 +592,12 @@ export default function StudentDashboard() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                     <section>
                       <h4 style={{ fontWeight: 700, marginBottom: '0.75rem', borderBottom: '1px solid var(--glass-border)', paddingBottom: '0.5rem' }}>Objective</h4>
+                      {team.innovation_description && (
+                        <div style={{ marginBottom: '1rem', padding: '1rem', background: 'rgba(0,255,136,0.03)', borderRadius: 8, borderLeft: '3px solid var(--success)' }}>
+                          <div style={{ fontSize: '0.65rem', color: 'var(--success)', fontWeight: 800, textTransform: 'uppercase', marginBottom: 4 }}>Your Innovation Idea</div>
+                          <p style={{ color: 'var(--text-primary)', fontSize: '0.9rem', lineHeight: 1.6 }}>{team.innovation_description}</p>
+                        </div>
+                      )}
                       <p style={{ color: 'var(--text-secondary)', lineHeight: 1.7 }}>{currentProblem.description}</p>
                     </section>
 
