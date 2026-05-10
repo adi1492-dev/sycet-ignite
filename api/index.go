@@ -351,11 +351,11 @@ func fetchGitStats(repoURL string) (GitStats, int, error) {
 
 	// Calculate Score
 	// 5 points per commit
-	// Recency: 25 points if there was a commit in last 24h
+	// Recency: 10 points if there was a commit in last 24h
 	// Popularity: 2 points per star/fork (max 10 points)
 	score := stats.Commits * 5
 	if !stats.LastCommit.IsZero() && time.Since(stats.LastCommit) < 24*time.Hour {
-		score += 25
+		score += 10
 	}
 	popScore := (stats.Stars + stats.Forks) * 2
 	if popScore > 10 { popScore = 10 }

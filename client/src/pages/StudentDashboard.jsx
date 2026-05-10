@@ -972,7 +972,7 @@ export default function StudentDashboard() {
                       {isRecent ? (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--success)' }}>
                           <CheckCircle size={14} />
-                          <div style={{ fontSize: '0.85rem', fontWeight: 700 }}>Active (25pts)</div>
+                          <div style={{ fontSize: '0.85rem', fontWeight: 700 }}>Active (10pts)</div>
                         </div>
                       ) : (
                         <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
