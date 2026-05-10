@@ -30,6 +30,8 @@ export const api = {
   getChat:       (teamId) => request('GET',  `/chat/messages${teamId ? `?team_id=${teamId}` : ''}`),
   sendMessage:   (data)   => request('POST', '/chat/send', data),
   submitGitRepo: (data) => request('POST', '/team/git-repo', data),
+  getGitStats:   ()     => request('GET',  '/team/git-stats'),
+  refreshGitStats:()    => request('POST', '/team/refresh-git-stats'),
 
   // Admin
   adminStats:    ()     => request('GET',  '/admin/stats'),

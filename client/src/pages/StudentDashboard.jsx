@@ -282,9 +282,23 @@ export default function StudentDashboard() {
     api.submitGitRepo({ repo_url: gitRepo.trim() })
       .then(() => {
         setGitSubmitted(true);
-        api.dashboard().then(setTeam);
+        // Stats are updated async in background, wait a bit then refresh dashboard
+        setTimeout(() => api.dashboard().then(setTeam), 2000);
       })
       .catch(e => console.error("Git submit error:", e));
+  };
+
+  const handleRefreshGit = () => {
+    setLoadingGit(true);
+    api.refreshGitStats()
+      .then(res => {
+        api.dashboard().then(setTeam);
+        setLoadingGit(false);
+      })
+      .catch(e => {
+        console.error(e);
+        setLoadingGit(false);
+      });
   };
 
 
@@ -901,32 +915,96 @@ export default function StudentDashboard() {
           </div>
         )}
 
-        {/* Git Pulse Sidebar Item (Inject into Overview) */}
+        {/* Git Pulse Insights Card */}
         {activeTab === 'overview' && team.git_repo && (
-          <div className="glass-card animate-fade-up" style={{ padding: '1.5rem', marginTop: '1.5rem' }}>
-            <h3 style={{ fontWeight: 800, marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: 10 }}>
-              <GitBranch size={20} color="var(--primary)" /> Live Git Activity (Client Pulse)
-            </h3>
-            {loadingGit ? (
-              <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Syncing with GitHub...</div>
-            ) : gitActivity.length > 0 ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {gitActivity.map((commit, i) => (
-                  <div key={i} style={{ display: 'flex', gap: 12, fontSize: '0.82rem' }}>
-                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--primary)', marginTop: 4 }} />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{commit.commit.message}</div>
-                      <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
-                        {commit.commit.author.name} · {new Date(commit.commit.author.date).toLocaleString()}
+          <div className="glass-card animate-fade-up" style={{ padding: '1.5rem', marginTop: '1.5rem', border: '1px solid rgba(112,0,255,0.2)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+              <div>
+                <h3 style={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <GitBranch size={20} color="var(--primary)" /> GitHub Pulse Insights
+                </h3>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Real-time activity evaluation</p>
+              </div>
+              <button 
+                className="btn btn-sm btn-outline" 
+                onClick={handleRefreshGit} 
+                disabled={loadingGit}
+                style={{ padding: '4px 10px', fontSize: '0.7rem' }}
+              >
+                {loadingGit ? 'Syncing...' : 'Refresh Pulse'}
+              </button>
+            </div>
+
+            <div className="grid-responsive grid-3" style={{ gap: '1rem', marginBottom: '1.5rem' }}>
+              <div style={{ background: 'rgba(112,0,255,0.05)', padding: '1rem', borderRadius: 12, textAlign: 'center', border: '1px solid rgba(112,0,255,0.1)' }}>
+                <div style={{ fontSize: '0.65rem', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 4 }}>Pulse Score</div>
+                <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--primary)' }}>{team.git_score || 0}</div>
+                <div style={{ fontSize: '0.6rem', color: 'var(--primary)', opacity: 0.8 }}>/ 100 Quality Pts</div>
+              </div>
+              
+              {(() => {
+                let stats = { commits: 0, stars: 0, forks: 0, last_commit: null };
+                try {
+                  if (team.git_stats) stats = JSON.parse(team.git_stats);
+                } catch(e) {}
+                
+                const lastCommitDate = stats.last_commit ? new Date(stats.last_commit) : null;
+                const isRecent = lastCommitDate && (new Date() - lastCommitDate < 24 * 60 * 60 * 1000);
+
+                return (
+                  <>
+                    <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: 12, border: '1px solid var(--glass-border)' }}>
+                      <div style={{ fontSize: '0.65rem', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 8 }}>Activity Metrics</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
+                          <span style={{ color: 'var(--text-secondary)' }}>Commits</span>
+                          <span style={{ fontWeight: 700 }}>{stats.commits || 0}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
+                          <span style={{ color: 'var(--text-secondary)' }}>Popularity (★/ψ)</span>
+                          <span style={{ fontWeight: 700 }}>{stats.stars || 0} / {stats.forks || 0}</span>
+                        </div>
                       </div>
                     </div>
-                    <div style={{ fontFamily: 'var(--font-mono)', color: 'var(--primary)', opacity: 0.6 }}>{commit.sha.substring(0, 7)}</div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No recent activity found or repo is private.</div>
-            )}
+
+                    <div style={{ background: isRecent ? 'rgba(0,255,136,0.05)' : 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: 12, border: isRecent ? '1px solid rgba(0,255,136,0.2)' : '1px solid var(--glass-border)' }}>
+                      <div style={{ fontSize: '0.65rem', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 8 }}>Recency Bonus</div>
+                      {isRecent ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--success)' }}>
+                          <CheckCircle size={14} />
+                          <div style={{ fontSize: '0.85rem', fontWeight: 700 }}>Active (25pts)</div>
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                          No commits in last 24h
+                        </div>
+                      )}
+                      <div style={{ fontSize: '0.6rem', marginTop: 4, color: 'var(--text-muted)' }}>
+                        Last commit: {lastCommitDate ? lastCommitDate.toLocaleTimeString() : 'Never'}
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+
+            {/* Commit Timeline Preview */}
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', borderTop: '1px solid var(--glass-border)', paddingTop: '1rem' }}>
+              <div style={{ marginBottom: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Recent Timeline</div>
+              {gitActivity.length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {gitActivity.slice(0, 3).map((commit, i) => (
+                    <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                      <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--primary)' }} />
+                      <div style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{commit.commit.message}</div>
+                      <div style={{ opacity: 0.5, fontSize: '0.65rem' }}>{new Date(commit.commit.author.date).toLocaleDateString()}</div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ fontStyle: 'italic' }}>No timeline data available. Refresh to sync.</div>
+              )}
+            </div>
           </div>
         )}
         {/* ── FOOTER ── */}

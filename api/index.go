@@ -3,6 +3,7 @@ package handler // Force rebuild 5
 import (
 	"context"
 	"database/sql"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -10,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"encoding/json"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -173,8 +175,10 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 				modifying.Use(teamLockedMiddleware())
 				{
 					modifying.POST("/team/checklist", updateChecklist)
-					modifying.POST("/team/git-repo", submitGitRepo)
-					modifying.POST("/kanban/update", updateKanbanTask)
+				modifying.POST("/team/git-repo", submitGitRepo)
+				modifying.POST("/team/refresh-git-stats", refreshGitStats)
+				modifying.GET("/team/git-stats", getGitStats)
+				modifying.POST("/kanban/update", updateKanbanTask)
 					modifying.POST("/kanban/delete", deleteKanbanTask)
 					modifying.POST("/team/select-admin", selectAdmin)
 				}
@@ -287,6 +291,87 @@ func teamLockedMiddleware() gin.HandlerFunc {
 	}
 }
 
+type GitStats struct {
+	Commits      int       `json:"commits"`
+	Contributors int       `json:"contributors"`
+	Stars        int       `json:"stars"`
+	Forks        int       `json:"forks"`
+	LastCommit   time.Time `json:"last_commit"`
+	UpdatedAt    time.Time `json:"updated_at"`
+}
+
+func fetchGitStats(repoURL string) (GitStats, int, error) {
+	stats := GitStats{UpdatedAt: time.Now()}
+	if repoURL == "" || !strings.Contains(repoURL, "github.com") {
+		return stats, 0, nil
+	}
+
+	parts := strings.Split(strings.TrimSuffix(strings.TrimPrefix(repoURL, "https://github.com/"), "/"), "/")
+	if len(parts) < 2 {
+		return stats, 0, nil
+	}
+	owner, repo := parts[0], strings.TrimSuffix(parts[1], ".git")
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	token := os.Getenv("GITHUB_TOKEN")
+
+	// Get Repo Info (Stars, Forks)
+	req, _ := http.NewRequest("GET", "https://api.github.com/repos/"+owner+"/"+repo, nil)
+	if token != "" { req.Header.Set("Authorization", "token "+token) }
+	resp, err := client.Do(req)
+	if err == nil && resp.StatusCode == 200 {
+		var info struct { Stars int `json:"stargazers_count"`; Forks int `json:"forks_count"` }
+		importJSON(resp.Body, &info)
+		stats.Stars = info.Stars
+		stats.Forks = info.Forks
+		resp.Body.Close()
+	}
+
+	// Get Commits
+	req, _ = http.NewRequest("GET", "https://api.github.com/repos/"+owner+"/"+repo+"/commits?per_page=100", nil)
+	if token != "" { req.Header.Set("Authorization", "token "+token) }
+	resp, err = client.Do(req)
+	if err == nil && resp.StatusCode == 200 {
+		var commits []interface{}
+		importJSON(resp.Body, &commits)
+		stats.Commits = len(commits)
+		if len(commits) > 0 {
+			if c, ok := commits[0].(map[string]interface{}); ok {
+				if commit, ok := c["commit"].(map[string]interface{}); ok {
+					if author, ok := commit["author"].(map[string]interface{}); ok {
+						if dateStr, ok := author["date"].(string); ok {
+							stats.LastCommit, _ = time.Parse(time.RFC3339, dateStr)
+						}
+					}
+				}
+			}
+		}
+		resp.Body.Close()
+	}
+
+	// Calculate Score
+	// 5 points per commit
+	// Recency: 25 points if there was a commit in last 24h
+	// Popularity: 2 points per star/fork (max 10 points)
+	score := stats.Commits * 5
+	if !stats.LastCommit.IsZero() && time.Since(stats.LastCommit) < 24*time.Hour {
+		score += 25
+	}
+	popScore := (stats.Stars + stats.Forks) * 2
+	if popScore > 10 { popScore = 10 }
+	score += popScore
+
+	if score > 100 { score = 100 } // Optional cap? Or let it grow? Usually 100 is good for pulse.
+	
+	return stats, score, nil
+}
+
+func importJSON(r interface{}, target interface{}) {
+	if rc, ok := r.(io.ReadCloser); ok {
+		json.NewDecoder(rc).Decode(target)
+	}
+}
+
 func AnalyzeSentiment(text string) int {
 	text = strings.ToLower(text)
 	positive := []string{"finished", "completed", "working", "solved", "implemented", "fixed", "done", "success", "progress", "milestone", "added"}
@@ -367,9 +452,9 @@ func handleRegister(c *gin.Context) {
 
 func getTeamDashboard(c *gin.Context) {
 	teamID, _ := c.Get("team_id")
-	var t struct { Name string; Progress int; Locked bool; GitRepo, AdminID, ProblemID, InnovationName, InnovationDescription, CompletedSteps sql.NullString }
-	err := db.QueryRow("SELECT name, progress, locked, git_repo, admin_id, problem_id, innovation_name, innovation_description, completed_steps FROM teams WHERE id = ?", teamID).
-		Scan(&t.Name, &t.Progress, &t.Locked, &t.GitRepo, &t.AdminID, &t.ProblemID, &t.InnovationName, &t.InnovationDescription, &t.CompletedSteps)
+	var t struct { Name string; Progress int; Locked bool; GitRepo, AdminID, ProblemID, InnovationName, InnovationDescription, CompletedSteps, GitStats sql.NullString; GitScore int }
+	err := db.QueryRow("SELECT name, progress, locked, git_repo, admin_id, problem_id, innovation_name, innovation_description, completed_steps, git_stats, git_score FROM teams WHERE id = ?", teamID).
+		Scan(&t.Name, &t.Progress, &t.Locked, &t.GitRepo, &t.AdminID, &t.ProblemID, &t.InnovationName, &t.InnovationDescription, &t.CompletedSteps, &t.GitStats, &t.GitScore)
 	if err != nil { c.JSON(404, gin.H{"error": "Team not found"}); return }
 	members := []gin.H{}
 	rows, _ := db.Query("SELECT id, username, role FROM users WHERE team_id = ?", teamID)
@@ -384,6 +469,7 @@ func getTeamDashboard(c *gin.Context) {
 		"admin_id": t.AdminID.String, "problem_id": t.ProblemID.String, 
 		"innovation_name": t.InnovationName.String, "innovation_description": t.InnovationDescription.String,
 		"completed_steps": t.CompletedSteps.String, "members": members,
+		"git_score": t.GitScore, "git_stats": t.GitStats.String,
 	})
 }
 
@@ -428,7 +514,43 @@ func submitGitRepo(c *gin.Context) {
 	c.ShouldBindJSON(&input)
 	teamID, _ := c.Get("team_id")
 	db.Exec("UPDATE teams SET git_repo = ? WHERE id = ?", input.RepoURL, teamID)
+	
+	// Async refresh git stats
+	go func(tid, url string) {
+		stats, score, err := fetchGitStats(url)
+		if err == nil {
+			statsJSON, _ := json.Marshal(stats)
+			db.Exec("UPDATE teams SET git_stats = ?, git_score = ? WHERE id = ?", string(statsJSON), score, tid)
+		}
+	}(teamID.(string), input.RepoURL)
+	
 	c.JSON(200, gin.H{"message": "Submitted"})
+}
+
+func refreshGitStats(c *gin.Context) {
+	teamID, _ := c.Get("team_id")
+	var repoURL string
+	db.QueryRow("SELECT git_repo FROM teams WHERE id = ?", teamID).Scan(&repoURL)
+	if repoURL == "" {
+		c.JSON(400, gin.H{"error": "No repository URL found"})
+		return
+	}
+	stats, score, err := fetchGitStats(repoURL)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Failed to fetch stats"})
+		return
+	}
+	statsJSON, _ := json.Marshal(stats)
+	db.Exec("UPDATE teams SET git_stats = ?, git_score = ? WHERE id = ?", string(statsJSON), score, teamID)
+	c.JSON(200, gin.H{"message": "Refreshed", "score": score, "stats": stats})
+}
+
+func getGitStats(c *gin.Context) {
+	teamID, _ := c.Get("team_id")
+	var statsStr sql.NullString
+	var score int
+	db.QueryRow("SELECT git_stats, git_score FROM teams WHERE id = ?", teamID).Scan(&statsStr, &score)
+	c.JSON(200, gin.H{"stats": statsStr.String, "score": score})
 }
 
 func getKanbanTasks(c *gin.Context) {
@@ -781,7 +903,7 @@ func updateSchedule(c *gin.Context) {
 func initDB() {
 	queries := []string{
 		`CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, username TEXT UNIQUE, password TEXT, role TEXT, team_id TEXT, email TEXT, mobile TEXT, is_mentor BOOLEAN DEFAULT 1, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`,
-		`CREATE TABLE IF NOT EXISTS teams (id TEXT PRIMARY KEY, name TEXT UNIQUE, password TEXT, admin_id TEXT, problem_id TEXT, innovation_name TEXT, innovation_tags TEXT, innovation_description TEXT, completed_steps TEXT, locked BOOLEAN DEFAULT 0, progress INTEGER DEFAULT 0, git_repo TEXT)`,
+		`CREATE TABLE IF NOT EXISTS teams (id TEXT PRIMARY KEY, name TEXT UNIQUE, password TEXT, admin_id TEXT, problem_id TEXT, innovation_name TEXT, innovation_tags TEXT, innovation_description TEXT, completed_steps TEXT, locked BOOLEAN DEFAULT 0, progress INTEGER DEFAULT 0, git_repo TEXT, git_score INTEGER DEFAULT 0, git_stats TEXT)`,
 		`CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY AUTOINCREMENT, team_id TEXT, user_id TEXT, username TEXT, role TEXT, content TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`,
 		`CREATE TABLE IF NOT EXISTS kanban_tasks (id TEXT PRIMARY KEY, team_id TEXT, content TEXT, col TEXT)`,
 		`CREATE TABLE IF NOT EXISTS problem_statements (id TEXT PRIMARY KEY, title TEXT, technology TEXT, bucket TEXT, description TEXT)`,
